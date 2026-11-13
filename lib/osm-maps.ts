@@ -103,6 +103,72 @@ function cleanDisplayName(displayName: string): string {
   return formatEnderecoExibicao(displayName);
 }
 
+function cidadeDoEndereco(address: NominatimAddress): string | undefined {
+  return (
+    address.city ||
+    address.town ||
+    address.municipality ||
+    address.village ||
+    address.hamlet
+  );
+}
+
+/** Rua (com número, se houver) ou bairro, mais a cidade. */
+function formatLocalizacaoLabel(
+  item: Pick<NominatimResult, "display_name" | "address">
+): string {
+  const address = item.address;
+  if (!address) return cleanDisplayName(item.display_name);
+
+  const city = cidadeDoEndereco(address);
+  const street = address.road || address.pedestrian;
+  const number = address.house_number;
+  const neighborhood = [
+    address.neighbourhood,
+    address.suburb,
+    address.quarter,
+    address.residential,
+  ].find((part) => part && part !== city && part !== street);
+
+  const reference = street
+    ? number
+      ? `${street}, ${number}`
+      : street
+    : neighborhood;
+
+  const parts: string[] = [];
+  if (reference) parts.push(reference);
+  if (city && city !== reference) parts.push(city);
+
+  if (parts.length > 0) {
+    return formatEnderecoExibicao(parts.join(", "));
+  }
+
+  return cleanDisplayName(item.display_name);
+}
+
+async function reverseGeocodeOnce(
+  lat: number,
+  lng: number,
+  layer?: string
+): Promise<(NominatimResult & { error?: string }) | null> {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lng),
+    format: "json",
+    addressdetails: "1",
+    zoom: "18",
+  });
+  if (layer) params.set("layer", layer);
+
+  const response = await nominatimFetch(`${NOMINATIM_REVERSE}?${params}`);
+  if (!response.ok) return null;
+
+  const data = (await response.json()) as NominatimResult & { error?: string };
+  if (data.error || !data.lat || !data.lon) return null;
+  return data;
+}
+
 async function nominatimFetch(url: string): Promise<Response> {
   return fetch(url, {
     headers: {
@@ -144,32 +210,26 @@ export async function reverseGeocodeNominatim(
   lat: number,
   lng: number
 ): Promise<{ lat: number; lng: number; label: string } | null> {
-  const params = new URLSearchParams({
-    lat: String(lat),
-    lon: String(lng),
-    format: "json",
-    addressdetails: "1",
-    zoom: "18",
-  });
+  const addressed = await reverseGeocodeOnce(lat, lng, "address");
+  const addressedLabel = addressed ? formatLocalizacaoLabel(addressed) : "";
+  const addressedCity = addressed?.address
+    ? cidadeDoEndereco(addressed.address)
+    : undefined;
+  const hasStreetOrNeighborhood =
+    Boolean(addressedLabel) && addressedLabel !== addressedCity;
 
-  const response = await nominatimFetch(`${NOMINATIM_REVERSE}?${params}`);
+  const data = hasStreetOrNeighborhood
+    ? addressed
+    : (await reverseGeocodeOnce(lat, lng)) ?? addressed;
 
-  if (!response.ok) {
+  if (!data) {
     throw new Error("Falha ao obter endereço da localização atual");
-  }
-
-  const data = (await response.json()) as NominatimResult & {
-    error?: string;
-  };
-
-  if (data.error || !data.lat || !data.lon) {
-    return null;
   }
 
   return {
     lat: Number(data.lat),
     lng: Number(data.lon),
-    label: formatPlaceLabel(data),
+    label: formatLocalizacaoLabel(data),
   };
 }
 
