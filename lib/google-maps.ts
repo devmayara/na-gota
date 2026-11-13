@@ -1,3 +1,4 @@
+import { formatEnderecoExibicao } from "@/lib/endereco";
 import {
   isGoogleMapsEnabled,
   requireGoogleMapsApiKey,
@@ -86,7 +87,7 @@ async function buscarPlacesGoogle(
 
   return (data.predictions ?? []).map((p) => ({
     placeId: p.place_id,
-    description: p.description,
+    description: formatEnderecoExibicao(p.description),
   }));
 }
 

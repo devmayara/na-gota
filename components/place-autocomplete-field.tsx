@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Loader2, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { formatEnderecoExibicao } from "@/lib/endereco";
 import { fetchPlaceSuggestions } from "@/lib/maps-client";
 import { cn } from "@/lib/utils";
 import type { LugarRef, PlaceSuggestion } from "@/types/viagem";
@@ -70,10 +71,12 @@ export function PlaceAutocompleteField({
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const results = await fetchPlaceSuggestions(
-            query,
-            sessionTokenRef.current
-          );
+          const results = (
+            await fetchPlaceSuggestions(query, sessionTokenRef.current)
+          ).map((item) => ({
+            ...item,
+            description: formatEnderecoExibicao(item.description),
+          }));
           if (!cancelled) {
             setSuggestions(results);
             setOpen(true);
@@ -109,14 +112,15 @@ export function PlaceAutocompleteField({
 
   function handleSelect(suggestion: PlaceSuggestion) {
     sessionTokenRef.current = createSessionToken();
+    const label = formatEnderecoExibicao(suggestion.description);
     onSelect({
-      label: suggestion.description,
+      label,
       placeId: suggestion.placeId,
       ...(suggestion.lat != null && suggestion.lng != null
         ? { lat: suggestion.lat, lng: suggestion.lng }
         : {}),
     });
-    onInputChange(suggestion.description);
+    onInputChange(label);
     setSuggestions([]);
     setOpen(false);
   }

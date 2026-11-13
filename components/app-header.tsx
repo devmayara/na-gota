@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Calculator, History } from "lucide-react";
+import { Calculator, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -64,16 +64,6 @@ export function AppHeader() {
             })}
           </nav>
 
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            className="size-10 min-h-12 min-w-12 md:min-h-10 md:min-w-10"
-          >
-            <Link href="/style-guide" aria-label="Abrir Style Guide">
-              <BookOpen className="size-4" aria-hidden />
-            </Link>
-          </Button>
           <ThemeToggle />
         </div>
       </div>

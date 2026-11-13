@@ -1,3 +1,4 @@
+import { formatEnderecoExibicao } from "@/lib/endereco";
 import type { PlaceSuggestion, RotaResultado } from "@/types/viagem";
 
 const NOMINATIM_SEARCH = "https://nominatim.openstreetmap.org/search";
@@ -50,10 +51,8 @@ type OsrmResponse = {
 };
 
 /**
- * Monta label curto no estilo:
- * "Maceió, Alagoas, Brasil" ou
- * "Estacionamento Partage Shopping, Santa Edwiges, Arapiraca, Alagoas, Brasil"
- * (sem "Região Nordeste", CEP, etc.)
+ * Local, endereço e cidade.
+ * "Estádio Rei Pelé, Maceió" ou "Senador Nilo Coelho, Arapiraca"
  */
 export function formatPlaceLabel(
   item: Pick<NominatimResult, "name" | "display_name" | "address">
@@ -72,56 +71,36 @@ export function formatPlaceLabel(
     undefined;
 
   const street = address.road || address.pedestrian;
-  const neighborhood =
-    address.neighbourhood || address.suburb || address.city_district;
   const city =
     address.city ||
     address.town ||
     address.municipality ||
     address.village ||
     address.hamlet;
-  const state = address.state;
-  const country = address.country;
 
   const parts: string[] = [];
 
   if (placeName) {
     parts.push(placeName);
-  } else if (street) {
+  }
+
+  if (street && street !== placeName) {
     parts.push(street);
   }
 
-  if (neighborhood && neighborhood !== placeName && neighborhood !== city) {
-    parts.push(neighborhood);
-  }
-
-  if (city && city !== placeName) {
+  if (city && city !== placeName && city !== street) {
     parts.push(city);
   }
 
-  if (state && state !== city) {
-    parts.push(state);
-  }
-
-  if (country) {
-    parts.push(country);
-  }
-
-  if (parts.length >= 2) {
-    return parts.join(", ");
+  if (parts.length > 0) {
+    return formatEnderecoExibicao(parts.join(", "));
   }
 
   return cleanDisplayName(item.display_name);
 }
 
 function cleanDisplayName(displayName: string): string {
-  return displayName
-    .split(",")
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0)
-    .filter((part) => !/^Região\s+/i.test(part))
-    .filter((part) => !/^\d{5}-?\d{0,3}$/.test(part))
-    .join(", ");
+  return formatEnderecoExibicao(displayName);
 }
 
 async function nominatimFetch(url: string): Promise<Response> {

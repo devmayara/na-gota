@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Calculator, Loader2, LocateFixed } from "lucide-react";
 import { PlaceAutocompleteField } from "@/components/place-autocomplete-field";
+import { ScreenLoader } from "@/components/screen-loader";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,6 +16,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  currencyDisplayFromStored,
+  maskCurrencyInput,
+  parseCurrencyInput,
+} from "@/lib/format";
 import { fetchReverseGeocode, fetchRotaDistancia } from "@/lib/maps-client";
 import { cn } from "@/lib/utils";
 import type {
@@ -129,7 +135,7 @@ export function validateCalculatorForm(
     errors.distanciaKm = "Distância deve ser maior que zero";
   }
 
-  const precoCombustivel = parsePositiveNumber(values.precoCombustivel);
+  const precoCombustivel = parseCurrencyInput(values.precoCombustivel);
   if (precoCombustivel === null) {
     errors.precoCombustivel = "Informe o preço do combustível";
   } else if (precoCombustivel < 0) {
@@ -190,6 +196,9 @@ export function CalculatorForm({
   const [values, setValues] = React.useState<CalculatorFormValues>({
     ...initialValues,
     ...defaultValues,
+    precoCombustivel: currencyDisplayFromStored(
+      defaultValues?.precoCombustivel ?? ""
+    ),
   });
   const [errors, setErrors] = React.useState<CalculatorFormErrors>({});
   const [origem, setOrigem] = React.useState<LugarRef | null>(null);
@@ -563,14 +572,15 @@ export function CalculatorForm({
             <Input
               id="precoCombustivel"
               name="precoCombustivel"
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="any"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
               placeholder="5,89"
               className="min-h-12 font-mono"
               value={values.precoCombustivel}
-              onChange={(e) => updateField("precoCombustivel", e.target.value)}
+              onChange={(e) =>
+                updateField("precoCombustivel", maskCurrencyInput(e.target.value))
+              }
               disabled={isSubmitting}
               aria-invalid={Boolean(errors.precoCombustivel)}
               aria-describedby={
@@ -661,6 +671,17 @@ export function CalculatorForm({
         </CardContent>
 
         <CardFooter>
+          {isSubmitting || rotaLoading || geoLoading ? (
+            <ScreenLoader
+              label={
+                isSubmitting
+                  ? "Calculando o custo..."
+                  : geoLoading
+                    ? "Obtendo sua localização..."
+                    : "Calculando a rota..."
+              }
+            />
+          ) : null}
           <Button
             type="submit"
             size="lg"

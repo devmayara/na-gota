@@ -24,7 +24,7 @@ export function LandingPage() {
               O custo da viagem, gota a gota.
             </h1>
             <p className="max-w-lg text-base leading-relaxed text-[#DDE8E0] sm:text-lg">
-              Calcule combustível, rateie por passageiro e guarde o histórico,
+              Calcule combustível, rateie por passageiros e guarde o histórico,
               com a rota e o preço que você informa.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

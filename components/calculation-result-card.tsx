@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Fuel, MapPin, Users } from "lucide-react";
+import { ArrowRightLeft, Fuel, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { formatEnderecoExibicao } from "@/lib/endereco";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { labelCombustivel, labelTrajeto } from "@/lib/labels-viagem";
 import { cn } from "@/lib/utils";
@@ -39,10 +40,12 @@ export function CalculationResultCard({
 }: CalculationResultCardProps) {
   const combustivelLabel = labelCombustivel(tipoCombustivel);
   const trajetoLabel = labelTrajeto(tipoTrajeto);
+  const origemCurta = origem ? formatEnderecoExibicao(origem) : undefined;
+  const destinoCurto = destino ? formatEnderecoExibicao(destino) : undefined;
   const trecho =
-    origem && destino
-      ? `${origem} → ${destino}`
-      : destino || origem || undefined;
+    origemCurta && destinoCurto
+      ? `${origemCurta} → ${destinoCurto}`
+      : destinoCurto || origemCurta || undefined;
 
   const metrics = [
     {
@@ -79,20 +82,22 @@ export function CalculationResultCard({
           ) : null}
         </div>
 
-        {(trecho ||
-          distanciaKm !== undefined ||
-          combustivelLabel ||
-          trajetoLabel) && (
+        {trecho ? (
+          <p className="mt-3 text-sm leading-relaxed text-foreground">
+            {origemCurta && destinoCurto ? (
+              <>
+                {origemCurta}
+                <span className="text-muted-foreground"> → </span>
+                {destinoCurto}
+              </>
+            ) : (
+              trecho
+            )}
+          </p>
+        ) : null}
+
+        {(distanciaKm !== undefined || combustivelLabel || trajetoLabel) && (
           <div className="mt-3 flex max-w-full flex-wrap gap-2">
-            {trecho ? (
-              <Badge
-                variant="outline"
-                className="max-w-full gap-1 font-normal whitespace-normal"
-              >
-                <MapPin className="size-3.5 shrink-0" aria-hidden />
-                <span className="min-w-0 break-words">{trecho}</span>
-              </Badge>
-            ) : null}
             {distanciaKm !== undefined ? (
               <Badge
                 variant="outline"

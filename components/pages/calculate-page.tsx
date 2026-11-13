@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import { AlertCircle } from "lucide-react";
-import { CalculationResultCard } from "@/components/calculation-result-card";
+import { CalculationDetailDrawer } from "@/components/calculation-detail-drawer";
 import {
   CalculatorForm,
   type CalculatorFormValues,
 } from "@/components/calculator-form";
+import { ScreenLoader } from "@/components/screen-loader";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { postCalcular } from "@/lib/api-client";
+import { formatCurrencyInputFromNumber } from "@/lib/format";
 import {
   loadCalculatorPrefs,
   prefsToFormDefaults,
@@ -22,6 +24,7 @@ function formatPrefNumber(value: number): string {
 
 export function CalculatePage() {
   const [result, setResult] = React.useState<Viagem | null>(null);
+  const [resultOpen, setResultOpen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [prefsDefaults, setPrefsDefaults] = React.useState<
@@ -40,15 +43,17 @@ export function CalculatePage() {
     try {
       const viagem = await postCalcular(data);
       setResult(viagem);
+      setResultOpen(true);
 
       saveCalculatorPrefs({
         tipoCombustivel: viagem.tipoCombustivel ?? "gasolina-comum",
-        precoCombustivel: formatPrefNumber(viagem.precoCombustivel),
+        precoCombustivel: formatCurrencyInputFromNumber(viagem.precoCombustivel),
         consumoCarro: formatPrefNumber(viagem.consumoCarro),
         quantidadePassageiros: String(viagem.quantidadePassageiros),
       });
     } catch (err) {
       setResult(null);
+      setResultOpen(false);
       setError(
         err instanceof Error
           ? err.message
@@ -67,7 +72,7 @@ export function CalculatePage() {
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground sm:text-base">
           Informe os dados da viagem para estimar combustível, custo total e
-          rateio por passageiro.
+          rateio por passageiros.
         </p>
       </header>
 
@@ -79,13 +84,7 @@ export function CalculatePage() {
           isSubmitting={isSubmitting}
         />
       ) : (
-        <div
-          className="rounded-xl border border-border bg-card px-6 py-12 text-center text-sm text-muted-foreground"
-          role="status"
-          aria-live="polite"
-        >
-          Carregando formulário...
-        </div>
+        <ScreenLoader label="Carregando formulário..." />
       )}
 
       {error ? (
@@ -96,17 +95,13 @@ export function CalculatePage() {
         </Alert>
       ) : null}
 
-      {result ? (
-        <CalculationResultCard
-          result={result}
-          origem={result.origem}
-          destino={result.destino}
-          distanciaKm={result.distanciaKm}
-          quantidadePassageiros={result.quantidadePassageiros}
-          tipoCombustivel={result.tipoCombustivel}
-          tipoTrajeto={result.tipoTrajeto}
-        />
-      ) : null}
+      <CalculationDetailDrawer
+        viagem={result}
+        open={resultOpen && result !== null}
+        onOpenChange={setResultOpen}
+        title="Resultado do cálculo"
+        description="Custo estimado com base nos dados informados."
+      />
     </div>
   );
 }

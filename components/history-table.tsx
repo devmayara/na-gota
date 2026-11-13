@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Eye, History, Route, Search, X } from "lucide-react";
-import { CalculationResultCard } from "@/components/calculation-result-card";
+import { Eye, History, Route, Search } from "lucide-react";
+import { CalculationDetailDrawer } from "@/components/calculation-detail-drawer";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,17 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatEnderecoExibicao } from "@/lib/endereco";
 import {
   formatCurrency,
   formatDateTime,
@@ -42,10 +34,12 @@ export type HistoryTableProps = {
 };
 
 function trechoLabel(viagem: Viagem): string {
-  if (viagem.origem && viagem.destino) {
-    return `${viagem.origem} → ${viagem.destino}`;
+  const origem = viagem.origem ? formatEnderecoExibicao(viagem.origem) : "";
+  const destino = viagem.destino ? formatEnderecoExibicao(viagem.destino) : "";
+  if (origem && destino) {
+    return `${origem} → ${destino}`;
   }
-  return viagem.destino?.trim() || viagem.origem?.trim() || "Viagem sem trecho";
+  return destino || origem || "Viagem sem trecho";
 }
 
 function matchesQuery(viagem: Viagem, query: string): boolean {
@@ -257,7 +251,7 @@ export function HistoryTable({
                           className="min-h-12 min-w-12 shrink-0"
                           aria-label={`Ver mais detalhes${
                             viagem.destino?.trim()
-                              ? ` de ${viagem.destino.trim()}`
+                              ? ` de ${formatEnderecoExibicao(viagem.destino.trim())}`
                               : ""
                           }`}
                           onClick={(event) => {
@@ -277,78 +271,13 @@ export function HistoryTable({
         </CardContent>
       </Card>
 
-      <Drawer
+      <CalculationDetailDrawer
+        viagem={detailViagem}
         open={detailOpen}
         onOpenChange={(open) => {
           if (!open) setDetailViagem(null);
         }}
-        direction="bottom"
-      >
-        <DrawerContent className="flex max-h-[92vh] flex-col md:mx-auto md:max-w-lg md:rounded-t-xl">
-          <DrawerHeader className="relative border-b border-border text-left">
-            <div className="pr-12">
-              <DrawerTitle>Detalhes do cálculo</DrawerTitle>
-              <DrawerDescription>
-                {detailViagem
-                  ? `Registrado em ${formatDateTime(detailViagem.createdAt)}`
-                  : "Resumo completo da viagem selecionada."}
-              </DrawerDescription>
-            </div>
-            <DrawerClose asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute top-3 right-3 size-10 min-h-12 min-w-12"
-                aria-label="Fechar detalhes"
-              >
-                <X className="size-4" aria-hidden />
-              </Button>
-            </DrawerClose>
-          </DrawerHeader>
-
-          {detailViagem ? (
-            <div className="flex-1 overflow-y-auto p-4">
-              {/* Preço e consumo só aqui — não repetidos no CalculationResultCard */}
-              <dl className="mb-4 grid grid-cols-2 gap-3 text-sm">
-                <div className="space-y-1 rounded-lg bg-muted/40 p-3">
-                  <dt className="text-xs text-muted-foreground">
-                    Preço combustível
-                  </dt>
-                  <dd className="font-mono font-medium">
-                    {formatCurrency(detailViagem.precoCombustivel)}/L
-                  </dd>
-                </div>
-                <div className="space-y-1 rounded-lg bg-muted/40 p-3">
-                  <dt className="text-xs text-muted-foreground">Consumo</dt>
-                  <dd className="font-mono font-medium">
-                    {formatNumber(detailViagem.consumoCarro)} Km/L
-                  </dd>
-                </div>
-              </dl>
-
-              <CalculationResultCard
-                result={detailViagem}
-                origem={detailViagem.origem}
-                destino={detailViagem.destino}
-                distanciaKm={detailViagem.distanciaKm}
-                quantidadePassageiros={detailViagem.quantidadePassageiros}
-                tipoCombustivel={detailViagem.tipoCombustivel}
-                tipoTrajeto={detailViagem.tipoTrajeto}
-                hideStatusBadge
-              />
-            </div>
-          ) : null}
-
-          <DrawerFooter className="border-t border-border">
-            <DrawerClose asChild>
-              <Button type="button" variant="outline" className="min-h-12 w-full">
-                Fechar
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+      />
     </>
   );
 }
